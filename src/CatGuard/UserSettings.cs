@@ -12,6 +12,8 @@ internal sealed class UserSettings
     public bool StayLocked { get; set; }
     public bool Sound { get; set; }
     public bool StartWithWindows { get; set; }
+    public string Language { get; set; } = "zh-CN";
+    public bool AnimateMascot { get; set; } = true;
     private static string PathName => Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), "WindowsCatGuard", "settings.json");
     public static UserSettings Load()
     {
@@ -20,6 +22,7 @@ internal sealed class UserSettings
             var result = JsonSerializer.Deserialize<UserSettings>(File.ReadAllText(PathName)) ?? new();
             result.Enabled = false;
             result.Sensitivity = Math.Clamp(result.Sensitivity, 1, 10);
+            result.Language = result.Language == "en" ? "en" : "zh-CN";
             using var key = Registry.CurrentUser.OpenSubKey(@"Software\Microsoft\Windows\CurrentVersion\Run");
             result.StartWithWindows = key?.GetValue("WindowsCatGuard") is not null;
             return result;

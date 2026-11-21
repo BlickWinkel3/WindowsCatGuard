@@ -2,5 +2,6 @@
   <PropertyGroup>
     <Deterministic>true</Deterministic>
     <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
+    <NuGetAudit>false</NuGetAudit>
   </PropertyGroup>
 </Project>

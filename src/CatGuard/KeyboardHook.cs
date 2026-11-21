@@ -53,7 +53,7 @@ internal sealed class KeyboardHook : IDisposable
             engine.Changed += QueueNotification;
             callback = Callback;
             handle = SetWindowsHookExW(13, callback, GetModuleHandleW(null), 0);
-            if (handle == 0) throw new Win32Exception(Marshal.GetLastWin32Error(), "无法安装键盘钩子");
+            if (handle == 0) throw new Win32Exception(Marshal.GetLastWin32Error(), "Unable to install the keyboard hook");
             // Preserve releases for keys held before launch without seeding physical state.
             for (int vk = 1; vk < 256; vk++)
                 if (vk is not (1 or 2 or 4 or 5 or 6 or 0x10 or 0x11 or 0x12) && (GetAsyncKeyState(vk) & 0x8000) != 0)
@@ -64,7 +64,7 @@ internal sealed class KeyboardHook : IDisposable
                     engine.SeedForwarded(vk);
                 }
             timer = new DispatcherTimer(TimeSpan.FromMilliseconds(100), DispatcherPriority.Send,
-                (_, _) => { try { engine.Poll(Environment.TickCount64); } catch { Disarm("检测异常，已停止防护"); } }, dispatcher);
+                (_, _) => { try { engine.Poll(Environment.TickCount64); } catch { Disarm("DetectionError"); } }, dispatcher);
         }
         catch (Exception ex) { startupError = ex; }
         finally { ready.Set(); }
@@ -89,7 +89,7 @@ internal sealed class KeyboardHook : IDisposable
 #endif
             if (engine.Handle((int)data.Vk, msg is 0x100 or 0x104, Environment.TickCount64, injected)) { blockedEvents++; return 1; }
         }
-        catch { Disarm("输入处理异常，已停止防护"); }
+        catch { Disarm("InputError"); }
         return CallNextHookEx(0, code, wParam, lParam);
     }
 
@@ -104,7 +104,7 @@ internal sealed class KeyboardHook : IDisposable
     public void Configure(UserSettings settings) => dispatcher.Invoke(() => engine.Configure(settings.Enabled, settings.Sensitivity, settings.WarnOnly, settings.StayLocked, Environment.TickCount64));
     public void Toggle() => dispatcher.Invoke(() => engine.Toggle(Environment.TickCount64));
     public void Unlock() => dispatcher.Invoke(() => engine.Unlock(Environment.TickCount64));
-    public void Suspend() => dispatcher.Invoke(() => Disarm("会话或电源状态改变，防护已暂停，请手动重新启用"));
+    public void Suspend() => dispatcher.Invoke(() => Disarm("SessionChanged"));
     private void Disarm(string message)
     {
         engine.FailOpen(Environment.TickCount64);

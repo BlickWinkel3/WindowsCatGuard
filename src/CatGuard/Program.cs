@@ -10,13 +10,17 @@ internal static class Program
     private static int Main(string[] args)
     {
         using var single = new Mutex(true, @"Local\WindowsCatGuard", out bool first);
-        if (!first) { System.Windows.MessageBox.Show("WindowsCatGuard 已在运行，请查看任务栏托盘。", "防猫踩键盘"); return 0; }
+        var ui = new UiText(UserSettings.Load().Language);
+        if (!first) { System.Windows.MessageBox.Show(ui["AlreadyRunning"], ui["WindowTitle"]); return 0; }
         try
         {
             var app = new System.Windows.Application { ShutdownMode = ShutdownMode.OnExplicitShutdown };
             using var hook = new KeyboardHook();
             var window = new GuardWindow(hook);
             app.MainWindow = window;
+            int languageIndex = Array.IndexOf(args, "--language") + 1;
+            if (languageIndex > 0 && languageIndex < args.Length)
+                window.SwitchLanguage(args[languageIndex], false);
             if (!args.Contains("--tray")) window.Show();
             if (args.Contains("--smoke-test"))
             {
@@ -52,7 +56,7 @@ internal static class Program
         }
         catch (Exception ex)
         {
-            System.Windows.MessageBox.Show("无法启动防护，键盘未锁定。\n" + ex.Message, "WindowsCatGuard");
+            System.Windows.MessageBox.Show(ui["LaunchFailed"] + ex.Message, ui["WindowTitle"]);
             return 1;
         }
     }
