@@ -4,8 +4,6 @@
 
 A compact Windows 10/11 x64 keyboard guard that pauses input when a cat steps on adjacent keys. Built with C#, .NET 10 and WPF. Version 0.3.0 has a switchable English/Chinese interface, a small single-column window and a paw icon. The app runs locally and stays in the system tray.
 
-Inspired by [CatSit](https://github.com/glvckoma/CatSit)'s detection rules and Windows hook structure, and [PawPause](https://github.com/miladsafarzadeh1/PawPause-mac)'s release-after-quiet behavior. See [third-party notices](THIRD_PARTY_NOTICES.md) and the included MIT licenses.
-
 ## Use
 
 1. Launch `WindowsCatGuard.exe`. Automatic protection starts **off** each time. The mouse remains available.
@@ -50,8 +48,6 @@ MIT License. Keep `LICENSE`, `THIRD_PARTY_NOTICES.md` and `licenses/` with redis
 ## 中文说明
 
 WindowsCatGuard 是面向 Windows 10/11 x64 的防猫踩键盘工具，使用 C#、.NET 10 与 WPF 开发，常驻托盘。0.3.0 改为精简的单栏小窗口，保留中英切换，统一使用猫爪图标。程序本地运行。
-
-检测规则与 Windows 钩子结构参考 [CatSit](https://github.com/glvckoma/CatSit)，松键后自动恢复的思路参考 [PawPause](https://github.com/miladsafarzadeh1/PawPause-mac)。来源和 MIT 许可证见[第三方声明](THIRD_PARTY_NOTICES.md)。
 
 ### 使用
 
