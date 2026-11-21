@@ -40,11 +40,11 @@ internal partial class GuardWindow : Window
         StayOption.IsChecked = settings.StayLocked;
         SoundOption.IsChecked = settings.Sound;
         StartupOption.IsChecked = settings.StartWithWindows;
-        AnimationOption.IsChecked = settings.AnimateMascot;
         SensitivitySlider.Value = settings.Sensitivity;
-        Mascot.Animate = settings.AnimateMascot;
 
-        tray = new Forms.NotifyIcon { Icon = System.Drawing.SystemIcons.Information, Visible = true };
+        using var iconStream = System.Windows.Application.GetResourceStream(new Uri("pack://application:,,,/WindowsCatGuard;component/assets/paw.ico")).Stream;
+        using var icon = new System.Drawing.Icon(iconStream);
+        tray = new Forms.NotifyIcon { Icon = (System.Drawing.Icon)icon.Clone(), Visible = true };
         menu.Items.Add("", null, (_, _) => Open());
         menu.Items.Add("", null, (_, _) => hook.Toggle());
         menu.Items.Add("", null, (_, _) => hook.Unlock());
@@ -68,8 +68,8 @@ internal partial class GuardWindow : Window
     internal string CurrentLanguage => ui.Language;
     internal string VisibleStatus => StatusText.Text;
     internal string VisibleSettingsTitle => SettingsText.Text;
-    internal (GuardState State, bool Enabled, bool Animate) ViewState => (snapshot.State, settings.Enabled, settings.AnimateMascot);
-    internal (double Tail, double Breath) Motion => (Mascot.TailAngle, Mascot.BreathScale);
+    internal (GuardState State, bool Enabled) ViewState => (snapshot.State, settings.Enabled);
+    internal double WindowWidth => Width;
 
     internal void SwitchLanguage(string language, bool save = true)
     {
@@ -79,33 +79,18 @@ internal partial class GuardWindow : Window
         if (save) SaveSettings();
     }
 
-    internal void SetAnimation(bool animate, bool save = true)
-    {
-        AnimationOption.IsChecked = animate;
-        settings.AnimateMascot = animate;
-        Mascot.Animate = animate;
-        if (save) SaveSettings();
-    }
-
     private void ApplyLanguage()
     {
         Title = ui["WindowTitle"];
         TaglineText.Text = ui["Tagline"];
         VersionText.Text = ui["Version"];
-        LanguageLabel.Text = ui["Language"];
-        CompanionText.Text = ui["Companion"];
-        JianzhouText.Text = ui["Jianzhou"];
-        CatNameText.Text = ui["CatName"];
-        CatDescriptionText.Text = ui["CatDescription"];
-        CatHintText.Text = ui["CatHint"];
-        AnimationOption.Content = ui["Animation"];
-        LocalOnlyText.Text = ui["LocalOnly"];
         ProtectionText.Text = ui["Protection"];
         MouseText.Text = ui["MouseAvailable"];
         TriggersLabel.Text = ui["Triggers"];
         HeldLabel.Text = ui["Held"];
         BlockedLabel.Text = ui["Blocked"];
         SettingsText.Text = ui["Settings"];
+        AdvancedBox.Header = ui["MoreSettings"];
         EnabledOption.Content = ui["AutoGuard"];
         EnabledHintText.Text = ui["AutoGuardHint"];
         WarnOption.Content = ui["WarnOnly"];
@@ -131,22 +116,16 @@ internal partial class GuardWindow : Window
         menu.Items[1].Text = ui["TrayToggle"];
         menu.Items[2].Text = ui["Unlock"];
         menu.Items[3].Text = ui["Exit"];
-        int index = ui.Language == "en" ? 1 : 0;
-        if (LanguageBox.SelectedIndex != index) LanguageBox.SelectedIndex = index;
+        ChineseButton.IsChecked = ui.Language != "en";
+        EnglishButton.IsChecked = ui.Language == "en";
         SensitivityValue.Text = $"{settings.Sensitivity} / 10";
         Refresh(snapshot);
     }
 
-    private void OnLanguageChanged(object sender, SelectionChangedEventArgs e)
+    private void OnLanguageClicked(object sender, RoutedEventArgs e)
     {
-        if (initializing || LanguageBox.SelectedItem is not ComboBoxItem item || item.Tag is not string language || language == ui.Language) return;
+        if (initializing || sender is not System.Windows.Controls.RadioButton item || item.Tag is not string language || language == ui.Language) return;
         SwitchLanguage(language);
-    }
-
-    private void OnAnimationChanged(object sender, RoutedEventArgs e)
-    {
-        if (initializing) return;
-        SetAnimation(AnimationOption.IsChecked == true);
     }
 
     private void OnOptionsChanged(object sender, RoutedEventArgs e) => ApplyOptions();
@@ -209,7 +188,7 @@ internal partial class GuardWindow : Window
         bool locked = s.State is GuardState.AutoLocked or GuardState.ManualLocked;
         string stateKey = s.State.ToString();
         StatusText.Text = ui[stateKey];
-        StatusText.Foreground = new SolidColorBrush((Color)ColorConverter.ConvertFromString(locked ? "#A43852" : s.State == GuardState.Watching ? "#167E77" : "#332D31"));
+        StatusText.Foreground = new SolidColorBrush((Color)ColorConverter.ConvertFromString(locked ? "#554772" : s.State == GuardState.Watching ? "#275B55" : "#242735"));
         StatusDetailText.Text = ui[s.State switch
         {
             GuardState.Watching => "WatchingDetail",
@@ -251,14 +230,13 @@ internal partial class GuardWindow : Window
         var panel = new StackPanel { Margin = new Thickness(20) };
         panel.Children.Add(hintTitle);
         panel.Children.Add(hintShortcut);
-        hintButton.Background = new SolidColorBrush(Color.FromRgb(255, 148, 171));
-        hintButton.BorderBrush = new SolidColorBrush(Color.FromRgb(51, 45, 49));
-        hintButton.BorderThickness = new Thickness(2);
+        hintButton.Background = new SolidColorBrush(Color.FromRgb(232, 223, 243));
+        hintButton.BorderThickness = new Thickness(0);
         hintButton.Click += (_, _) => hook.Unlock();
         panel.Children.Add(hintButton);
         var window = new Window
         {
-            Width = 330, Height = 181, Content = panel, Background = new SolidColorBrush(Color.FromRgb(250, 246, 245)),
+            Width = 330, Height = 181, Content = panel, Background = new SolidColorBrush(Color.FromRgb(248, 247, 252)), Icon = Icon,
             Topmost = true, ShowActivated = false, ShowInTaskbar = false, WindowStyle = WindowStyle.ToolWindow,
             ResizeMode = ResizeMode.NoResize, FontFamily = FontFamily, Foreground = Foreground
         };
@@ -271,7 +249,6 @@ internal partial class GuardWindow : Window
         if (exiting) return;
         exiting = true;
         statusTimer.Stop();
-        Mascot.Animate = false;
         hook.Changed -= OnHookChanged;
         hook.Failed -= OnFailure;
         SystemEvents.SessionSwitch -= OnSession;
@@ -279,6 +256,7 @@ internal partial class GuardWindow : Window
         hook.Dispose();
         hint.Close();
         tray.Visible = false;
+        tray.Icon?.Dispose();
         tray.Dispose();
         System.Windows.Application.Current.Shutdown();
     }

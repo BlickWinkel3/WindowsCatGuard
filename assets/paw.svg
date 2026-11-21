@@ -1,0 +1,10 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" role="img" aria-label="WindowsCatGuard paw">
+  <rect x="8" y="8" width="240" height="240" rx="60" fill="#E8DFF3"/>
+  <g fill="#242735">
+    <ellipse cx="128" cy="158" rx="54" ry="43"/>
+    <ellipse cx="50" cy="100" rx="16" ry="23" transform="rotate(-18 50 100)"/>
+    <ellipse cx="94" cy="64" rx="17" ry="25" transform="rotate(-8 94 64)"/>
+    <ellipse cx="160" cy="64" rx="17" ry="25" transform="rotate(8 160 64)"/>
+    <ellipse cx="206" cy="100" rx="16" ry="23" transform="rotate(18 206 100)"/>
+  </g>
+</svg>

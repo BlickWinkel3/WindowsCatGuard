@@ -13,14 +13,7 @@ internal sealed class UiText
     public static readonly Dictionary<string, (string Zh, string En)> All = new()
     {
         ["WindowTitle"] = ("WindowsCatGuard · 防猫踩键盘", "WindowsCatGuard · Keyboard companion"),
-        ["Tagline"] = ("让猫陪着你，让键盘安静下来。", "A little company. A quieter keyboard."),
-        ["Companion"] = ("安静陪伴", "QUIET COMPANY"),
-        ["Jianzhou"] = ("简州猫", "Jianzhou cat"),
-        ["CatName"] = ("小简", "Jian"),
-        ["CatDescription"] = ("轻轻呼吸，静静守护。", "A gentle breath. A watchful friend."),
-        ["CatHint"] = ("移近鼠标，和小简打个招呼。", "Move your pointer closer to say hello."),
-        ["Animation"] = ("猫咪动效", "Animate companion"),
-        ["LocalOnly"] = ("本地运行 · 不记录输入文本", "Works offline · No typed text recorded"),
+        ["Tagline"] = ("防猫踩键盘", "Paw-proof keyboard"),
         ["Protection"] = ("键盘防护", "KEYBOARD GUARD"),
         ["Off"] = ("防护已关闭", "Guard is off"),
         ["Watching"] = ("正在安静守护", "Quietly watching"),
@@ -38,6 +31,7 @@ internal sealed class UiText
         ["Held"] = ("当前按住", "Keys held"),
         ["Blocked"] = ("已拦截事件", "Blocked events"),
         ["Settings"] = ("防护设置", "Protection settings"),
+        ["MoreSettings"] = ("更多设置", "More settings"),
         ["AutoGuard"] = ("自动防护", "Automatic protection"),
         ["AutoGuardHint"] = ("检测邻近多键、密集乱按和持续踩压", "Detect clusters, key bursts and sustained holds"),
         ["WarnOnly"] = ("仅提示", "Notify only"),
@@ -74,6 +68,6 @@ internal sealed class UiText
         ["SessionChanged"] = ("会话或电源状态改变，防护已暂停，请手动重新启用。", "Session or power state changed. Turn protection on again when ready."),
         ["AlreadyRunning"] = ("WindowsCatGuard 已在运行，请查看任务栏托盘。", "WindowsCatGuard is already running. Look for it in the system tray."),
         ["LaunchFailed"] = ("无法启动防护，键盘未锁定。\n", "Protection could not start. Your keyboard is not locked.\n"),
-        ["Version"] = ("版本 0.2.0", "Version 0.2.0"),
+        ["Version"] = ("版本 0.3.0", "Version 0.3.0"),
     };
 }

@@ -7,10 +7,12 @@
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
     <AssemblyName>WindowsCatGuard</AssemblyName>
-    <Version>0.2.0</Version>
+    <Version>0.3.0</Version>
+    <ApplicationIcon>../../assets/paw.ico</ApplicationIcon>
     <ApplicationManifest>app.manifest</ApplicationManifest>
   </PropertyGroup>
   <ItemGroup>
+    <Resource Include="../../assets/paw.ico" Link="assets/paw.ico" />
     <AssemblyAttribute Include="System.Runtime.CompilerServices.InternalsVisibleToAttribute">
       <_Parameter1>CatGuard.UiChecks</_Parameter1>
     </AssemblyAttribute>

@@ -13,7 +13,6 @@ internal sealed class UserSettings
     public bool Sound { get; set; }
     public bool StartWithWindows { get; set; }
     public string Language { get; set; } = "zh-CN";
-    public bool AnimateMascot { get; set; } = true;
     private static string PathName => Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), "WindowsCatGuard", "settings.json");
     public static UserSettings Load()
     {

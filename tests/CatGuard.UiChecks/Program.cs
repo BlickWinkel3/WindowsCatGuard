@@ -19,7 +19,7 @@ internal static class Program
         {
             var app = new Application { ShutdownMode = ShutdownMode.OnExplicitShutdown };
             using var hook = new KeyboardHook();
-            var options = new UserSettings { Enabled = false, Sensitivity = 5, Language = "zh-CN", AnimateMascot = true };
+            var options = new UserSettings { Enabled = false, Sensitivity = 5, Language = "zh-CN" };
             var window = new GuardWindow(hook, options, persist: false);
             app.MainWindow = window;
             window.Loaded += async (_, _) =>
@@ -29,23 +29,16 @@ internal static class Program
                     await Task.Delay(500);
                     Check(window.CurrentLanguage == "zh-CN" && window.VisibleStatus == "防护已关闭", "Chinese status");
                     Check(window.VisibleSettingsTitle == "防护设置", "Chinese settings");
+                    Check(window.WindowWidth <= 570, "compact window width");
                     Capture(window, Path.Combine(args[0], "WindowsCatGuard-中文.png"));
-                    var first = window.Motion;
-                    await Task.Delay(700);
-                    var second = window.Motion;
-                    Check(Math.Abs(first.Tail - second.Tail) > 0.05 || Math.Abs(first.Breath - second.Breath) > 0.001, "vector animation advances");
                     window.SwitchLanguage("en", false);
                     await Task.Delay(200);
                     Check(window.CurrentLanguage == "en" && window.VisibleStatus == "Guard is off", "English status");
                     Check(window.VisibleSettingsTitle == "Protection settings", "English settings");
-                    Check(window.ViewState == (GuardState.Off, false, true), "language switch preserves protection");
+                    Check(window.ViewState == (GuardState.Off, false), "language switch preserves protection");
                     Capture(window, Path.Combine(args[0], "WindowsCatGuard-English.png"));
-                    window.SetAnimation(false, false);
-                    var stopped = window.Motion;
-                    await Task.Delay(300);
-                    Check(window.Motion == stopped, "animation switch stops motion");
-                    Check(window.ViewState == (GuardState.Off, false, false), "animation switch preserves protection");
-                    File.WriteAllText(report, $"PASS; Chinese and English text; state preserved; animation advanced and stopped; screenshots captured; HookInstalled={hook.Snapshot.HookInstalled}");
+                    Check(window.Icon is not null, "paw window icon");
+                    File.WriteAllText(report, $"PASS; compact Chinese and English windows; state preserved; paw icon loaded; screenshots captured; HookInstalled={hook.Snapshot.HookInstalled}");
                 }
                 catch (Exception ex) { File.WriteAllText(report, "FAIL: " + ex); }
                 finally { window.ExitApp(); }
