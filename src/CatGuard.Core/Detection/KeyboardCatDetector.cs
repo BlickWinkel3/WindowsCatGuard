@@ -6,6 +6,7 @@ public sealed class KeyboardCatDetector
     private readonly Dictionary<int, long> _held = [];
     private readonly List<(int Vk, long TimestampMs)> _window = [];
     private string _reportedHoldSignature = string.Empty;
+    private bool _ctrlOrAltHeld;
 
     public KeyboardCatDetector(SensitivityProfile profile)
     {
@@ -15,13 +16,15 @@ public sealed class KeyboardCatDetector
     public CatSignal? Observe(KeyEventInfo e)
     {
         if (e.Injected) return null;
+        _ctrlOrAltHeld = e.CtrlOrAltHeld;
         if (!e.IsDown)
         {
             _held.Remove(e.Vk);
             _reportedHoldSignature = string.Empty;
             return null;
         }
-        if (e.CtrlOrAltHeld || IsModifier(e.Vk)) return null;
+        // A paw can land on Ctrl/Alt too. Ignore the modifier itself, not every other key.
+        if (IsModifier(e.Vk)) return null;
         if (!_held.TryAdd(e.Vk, e.TimestampMs)) return null;
         _reportedHoldSignature = string.Empty;
         _window.Add((e.Vk, e.TimestampMs));
@@ -41,6 +44,8 @@ public sealed class KeyboardCatDetector
     public CatSignal? Poll(long nowMs)
     {
         if (_held.Count < SensitivityProfile.MinHoldKeys) return null;
+        // Ordinary shortcuts with one or two content keys should not become a hold trigger.
+        if (_ctrlOrAltHeld && _held.Count < _profile.ConcurrentKeys) return null;
         var keys = _held.Keys.ToArray();
         var signature = Core.Input.KeyNames.Signature(keys);
         if (signature == _reportedHoldSignature) return null;
@@ -70,6 +75,7 @@ public sealed class KeyboardCatDetector
         _held.Clear();
         _window.Clear();
         _reportedHoldSignature = string.Empty;
+        _ctrlOrAltHeld = false;
     }
 
     private long LongestHoldMs(long nowMs) => _held.Count == 0 ? 0 : _held.Values.Max(start => nowMs - start);

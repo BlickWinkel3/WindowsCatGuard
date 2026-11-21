@@ -52,6 +52,16 @@ engine = Armed(); engine.Handle(0xA2, true, 500); engine.Handle(0xA4, true, 510)
 Check(engine.State == GuardState.ManualLocked, "hotkey can lock from watching");
 Check(!engine.Handle(0xA2, false, 530) && !engine.Handle(0xA4, false, 540), "pre-lock modifier keyUps remain forwarded");
 engine = Armed(true); engine.Toggle(500); Check(!engine.Locked, "warn-only prevents manual lock too");
-engine = Armed(); engine.SeedHeld(0x41, 0); engine.Handle(0x53, true, 500); engine.Handle(0x44, true, 501); engine.Handle(0x46, true, 502);
-Check(!engine.Locked, "startup held keys drain before detection");
+engine = Armed(); engine.SeedForwarded(0x24); engine.SeedForwarded(0x63);
+Check(engine.HeldCount == 0, "stale OS logical key states do not become physical holds");
+Paw(engine); Check(engine.Locked, "stale startup keys cannot permanently suspend automatic detection");
+Check(!engine.Handle(0x24, false, 600), "pre-launch keyUp still reaches its original application");
+engine = Armed(); engine.Handle(0xA2, true, 400); Paw(engine);
+Check(engine.Locked, "paw cluster is still detected while Ctrl is pressed");
+engine = Armed(); engine.Handle(0xA4, true, 400); Paw(engine);
+Check(engine.Locked, "paw cluster is still detected while Alt is pressed");
+engine = Armed(); engine.Handle(0xA2, true, 400); engine.Handle(0x43, true, 500); engine.Poll(8000);
+Check(!engine.Locked, "Ctrl+C long hold remains a normal shortcut");
+engine.Handle(0x56, true, 8010); engine.Poll(16000);
+Check(!engine.Locked, "two content keys with Ctrl do not cause a sustained-hold false positive");
 Console.WriteLine($"ALL {checks} CHECKS PASSED");

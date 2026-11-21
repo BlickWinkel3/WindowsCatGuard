@@ -22,6 +22,8 @@ internal sealed class GuardWindow : Window
     private readonly TextBlock status = new() { FontSize = 26, FontWeight = FontWeights.SemiBold, Margin = new Thickness(0, 8, 0, 8) };
     private readonly TextBlock detail = new() { TextWrapping = TextWrapping.Wrap, Foreground = Brushes.SlateGray };
     private readonly TextBlock error = new() { Foreground = Brushes.Firebrick, TextWrapping = TextWrapping.Wrap };
+    private readonly TextBlock inputStatus = new() { Foreground = Brushes.SlateGray, FontSize = 12, TextWrapping = TextWrapping.Wrap, Margin = new Thickness(0, 5, 0, 4) };
+    private readonly System.Windows.Threading.DispatcherTimer statusTimer;
     private readonly Button toggle = new() { Content = "立即锁定键盘", Padding = new Thickness(18, 10, 18, 10), Margin = new Thickness(0, 14, 8, 0) };
     private readonly Window hint;
     private GuardState previous = GuardState.Off;
@@ -31,8 +33,8 @@ internal sealed class GuardWindow : Window
     public GuardWindow(KeyboardHook hook)
     {
         this.hook = hook;
-        Title = "WindowsCatGuard · 防猫踩键盘";
-        Width = 540; Height = 670; MinWidth = 500; MinHeight = 640;
+        Title = "WindowsCatGuard 0.1.1 · 防猫踩键盘";
+        Width = 540; Height = 740; MinWidth = 500; MinHeight = 700;
         WindowStartupLocation = WindowStartupLocation.CenterScreen;
         Background = new SolidColorBrush(Color.FromRgb(247, 248, 251));
         FontFamily = new FontFamily("Microsoft YaHei UI"); FontSize = 14;
@@ -40,7 +42,7 @@ internal sealed class GuardWindow : Window
         Content = new ScrollViewer { Content = panel, VerticalScrollBarVisibility = ScrollBarVisibility.Auto };
         panel.Children.Add(new TextBlock { Text = "🐾  WindowsCatGuard", FontSize = 23, FontWeight = FontWeights.Bold });
         panel.Children.Add(new TextBlock { Text = "让猫陪着你，也让键盘安静下来。", Foreground = Brushes.SlateGray, Margin = new Thickness(0, 5, 0, 10) });
-        panel.Children.Add(status); panel.Children.Add(detail);
+        panel.Children.Add(status); panel.Children.Add(detail); panel.Children.Add(inputStatus);
         var buttons = new StackPanel { Orientation = Orientation.Horizontal };
         toggle.Click += (_, _) => hook.Toggle(); buttons.Children.Add(toggle);
         var unlock = new Button { Content = "解锁", Padding = new Thickness(18, 10, 18, 10), Margin = new Thickness(0, 14, 0, 0) };
@@ -49,6 +51,7 @@ internal sealed class GuardWindow : Window
         AddOption(panel, enabled); AddOption(panel, warn);
         panel.Children.Add(new TextBlock { Text = "检测灵敏度", FontWeight = FontWeights.SemiBold, Margin = new Thickness(0, 12, 0, 0) });
         panel.Children.Add(sensitivity); panel.Children.Add(level);
+        panel.Children.Add(new TextBlock { Text = "测试：先启用自动防护，再同时按住 A、S、D、F。", Foreground = Brushes.SlateGray, FontSize = 12, Margin = new Thickness(0, 8, 0, 0) });
         AddOption(panel, stay); AddOption(panel, sound); AddOption(panel, startup);
         panel.Children.Add(new TextBlock { Text = "自动模式：所有按键松开且安静 1 秒后恢复。\n手动锁定：保持到你主动解锁。\n自动检测触发前，少量输入可能已经进入应用。", TextWrapping = TextWrapping.Wrap, Foreground = Brushes.SlateGray, FontSize = 12, Margin = new Thickness(0, 18, 0, 12) });
         panel.Children.Add(error);
@@ -83,6 +86,9 @@ internal sealed class GuardWindow : Window
         Closing += (_, e) => { if (!exiting) { e.Cancel = true; Hide(); } };
         initializing = false;
         Apply(); Refresh(hook.Snapshot);
+        statusTimer = new System.Windows.Threading.DispatcherTimer { Interval = TimeSpan.FromMilliseconds(400) };
+        statusTimer.Tick += (_, _) => { if (!exiting) RefreshInput(hook.Snapshot); };
+        statusTimer.Start();
     }
 
     private static void AddOption(StackPanel panel, CheckBox option) { option.Margin = new Thickness(0, 10, 0, 0); panel.Children.Add(option); }
@@ -111,6 +117,7 @@ internal sealed class GuardWindow : Window
 
     private void Refresh(GuardSnapshot s)
     {
+        RefreshInput(s);
         bool locked = s.State is GuardState.AutoLocked or GuardState.ManualLocked;
         string label = s.State switch { GuardState.Watching => "正在监测", GuardState.AutoLocked => "猫咪来访 · 键盘已暂停", GuardState.ManualLocked => "键盘已手动锁定", _ => "防护已关闭" };
         status.Text = label; status.Foreground = locked ? Brushes.DarkOrange : s.State == GuardState.Watching ? Brushes.SeaGreen : Brushes.SlateGray;
@@ -132,6 +139,9 @@ internal sealed class GuardWindow : Window
         previous = s.State;
     }
 
+    private void RefreshInput(GuardSnapshot s) => inputStatus.Text = $"收到实体按键事件 {s.PhysicalEvents} · 当前按住 {s.HeldCount} 键 · 已拦截 {s.BlockedEvents} 次" +
+        (s.InjectedEvents > 0 ? $"\n另收到 {s.InjectedEvents} 次软件模拟事件（不用于自动检测）" : "");
+
     private Window MakeHint()
     {
         var content = new StackPanel { Margin = new Thickness(20) };
@@ -148,6 +158,7 @@ internal sealed class GuardWindow : Window
     {
         if (exiting) return;
         exiting = true;
+        statusTimer.Stop();
         hook.Changed -= OnHookChanged; hook.Failed -= OnFailure;
         SystemEvents.SessionSwitch -= OnSession; SystemEvents.PowerModeChanged -= OnPower;
         hook.Dispose(); hint.Close(); tray.Visible = false; tray.Dispose();

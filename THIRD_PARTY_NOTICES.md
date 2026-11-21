@@ -11,7 +11,8 @@ licenses are included in `licenses/` and must accompany redistributed copies.
 - License: MIT, reproduced in `licenses/CatSit-MIT.txt`.
 - Copied files: `src/CatGuard.Core/Detection/*.cs` and `src/CatGuard.Core/Input/KeyNames.cs`.
   Namespaces changed from `CatSit.Core` to `CatGuard.Core`; the detection window
-  is capped at 128 events.
+  is capped at 128 events. Modifier keys no longer exclude all other keys from
+  detection; common Ctrl/Alt shortcuts remain exempt from low-count hold triggers.
 - `src/CatGuard/KeyboardHook.cs` adapts the native hook/thread structure of
   CatSit's `InputHookManager.cs`, `NativeMethods.cs` and `HookThread.cs`.
   Keyboard pairing, recovery, detection scheduling and UI integration differ.

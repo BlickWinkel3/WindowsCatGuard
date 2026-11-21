@@ -25,13 +25,9 @@ public sealed class GuardEngine
     public int HeldCount => physical.Count;
     public event Action? Changed;
 
-    public void SeedHeld(int vk, long now)
-    {
-        physical.Add(vk);
-        forwarded.Add(vk);
-        lastActivity = now;
-        drain = true;
-    }
+    // GetAsyncKeyState is an OS logical state, which can contain stale/aliased keys.
+    // Preserve keyUp pairing, but never infer physical holds or gate detection from it.
+    public void SeedForwarded(int vk) => forwarded.Add(vk);
 
     public void Configure(bool enabled, int sensitivity, bool warnOnly, bool stayLocked, long now)
     {

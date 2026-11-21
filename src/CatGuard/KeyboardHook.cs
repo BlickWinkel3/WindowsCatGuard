@@ -26,6 +26,12 @@ internal sealed class KeyboardHook : IDisposable
     private Exception? startupError;
     private bool disposed;
     private bool notificationQueued;
+    private long physicalEvents;
+    private long injectedEvents;
+    private long blockedEvents;
+#if NATIVE_TEST
+    public List<int> InitialKeys { get; } = [];
+#endif
     public event Action<GuardSnapshot>? Changed;
     public event Action<string>? Failed;
     public GuardSnapshot Snapshot => dispatcher.Invoke(ReadSnapshot);
@@ -48,10 +54,15 @@ internal sealed class KeyboardHook : IDisposable
             callback = Callback;
             handle = SetWindowsHookExW(13, callback, GetModuleHandleW(null), 0);
             if (handle == 0) throw new Win32Exception(Marshal.GetLastWin32Error(), "无法安装键盘钩子");
-            // Treat keys already held at launch as forwarded, without scoring them.
+            // Preserve releases for keys held before launch without seeding physical state.
             for (int vk = 1; vk < 256; vk++)
                 if (vk is not (1 or 2 or 4 or 5 or 6 or 0x10 or 0x11 or 0x12) && (GetAsyncKeyState(vk) & 0x8000) != 0)
-                    engine.SeedHeld(vk, Environment.TickCount64);
+                {
+#if NATIVE_TEST
+                    InitialKeys.Add(vk);
+#endif
+                    engine.SeedForwarded(vk);
+                }
             timer = new DispatcherTimer(TimeSpan.FromMilliseconds(100), DispatcherPriority.Send,
                 (_, _) => { try { engine.Poll(Environment.TickCount64); } catch { Disarm("检测异常，已停止防护"); } }, dispatcher);
         }
@@ -69,7 +80,14 @@ internal sealed class KeyboardHook : IDisposable
             int msg = (int)wParam;
             if (msg is not (0x100 or 0x101 or 0x104 or 0x105)) return CallNextHookEx(0, code, wParam, lParam);
             var data = Marshal.PtrToStructure<KeyboardData>(lParam);
-            if (engine.Handle((int)data.Vk, msg is 0x100 or 0x104, Environment.TickCount64, (data.Flags & 0x10) != 0)) return 1;
+            bool injected = (data.Flags & 0x10) != 0;
+            if (injected) injectedEvents++; else physicalEvents++;
+#if NATIVE_TEST
+            // Test assembly only: route marked SendInput through the physical-key path.
+            // This branch is not compiled into WindowsCatGuard.exe.
+            if (data.Extra == 0x43415454) injected = false;
+#endif
+            if (engine.Handle((int)data.Vk, msg is 0x100 or 0x104, Environment.TickCount64, injected)) { blockedEvents++; return 1; }
         }
         catch { Disarm("输入处理异常，已停止防护"); }
         return CallNextHookEx(0, code, wParam, lParam);
@@ -82,7 +100,7 @@ internal sealed class KeyboardHook : IDisposable
         notificationQueued = true;
         dispatcher.BeginInvoke(() => { notificationQueued = false; Changed?.Invoke(ReadSnapshot()); });
     }
-    private GuardSnapshot ReadSnapshot() => new(engine.State, engine.TriggerCount, engine.LastRule?.ToString(), handle != 0);
+    private GuardSnapshot ReadSnapshot() => new(engine.State, engine.TriggerCount, engine.LastRule?.ToString(), handle != 0, physicalEvents, injectedEvents, blockedEvents, engine.HeldCount);
     public void Configure(UserSettings settings) => dispatcher.Invoke(() => engine.Configure(settings.Enabled, settings.Sensitivity, settings.WarnOnly, settings.StayLocked, Environment.TickCount64));
     public void Toggle() => dispatcher.Invoke(() => engine.Toggle(Environment.TickCount64));
     public void Unlock() => dispatcher.Invoke(() => engine.Unlock(Environment.TickCount64));
@@ -102,4 +120,4 @@ internal sealed class KeyboardHook : IDisposable
     }
 }
 
-internal sealed record GuardSnapshot(GuardState State, long Triggers, string? Rule, bool HookInstalled);
+internal sealed record GuardSnapshot(GuardState State, long Triggers, string? Rule, bool HookInstalled, long PhysicalEvents, long InjectedEvents, long BlockedEvents, int HeldCount);
